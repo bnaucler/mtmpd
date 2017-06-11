@@ -13,7 +13,6 @@
 #include "mtmp.h"
 
 #define MXCLI 5
-#define RESP "Message recieved"
 
 int matoi(char* str) {
 
@@ -40,6 +39,8 @@ static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen
 
 	rc = write(sock, wstr, strlen(wstr));
 	if(rc < 0) syslog(LOG_DAEMON | LOG_ERR, "Could not write to socket");
+
+	shutdown(sock, 1);
 }
 
 int main(int argc, char *argv[]) {
