@@ -1,5 +1,5 @@
 # mtmpd 0.1
-A minimal socket implementation if mtmp
+A minimal socket implementation if [mtmp](https://github.com/bnaucler/mtmp).
 
 ## Written by
 Björn Westerberg Nauclér (mail@bnaucler.se) 2017

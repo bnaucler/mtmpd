@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <signal.h>
+#include <syslog.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -31,18 +33,18 @@ static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen
 
 	rc = getnameinfo((struct sockaddr*)client, *clilen, cip,
 	sizeof(cip), 0 , 0, NI_NUMERICHOST);
-	if(rc) die("Failed to convert address to string", O_NOUINF, 7);
+	if(rc) syslog(LOG_DAEMON | LOG_ERR, "Failed IP address conversion");
 
-	printf("Connection from: %s\n", cip);
+	syslog(LOG_DAEMON | LOG_INFO, "Connection from %s", cip);
 	mtmp("", cip, wstr, sizeof(wstr));
 
 	rc = write(sock, wstr, strlen(wstr));
-	if(rc < 0) die("Could not write to socket", O_NOUINF, 6);
+	if(rc < 0) syslog(LOG_DAEMON | LOG_ERR, "Could not write to socket");
 }
 
 int main(int argc, char *argv[]) {
 
-	int sfd, csfd, pnum, pid;
+	int sfd, csfd, pid;
 	socklen_t clilen;
 
 	struct sockaddr_in server, client;
@@ -52,10 +54,9 @@ int main(int argc, char *argv[]) {
 	sfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sfd < 0) die("Could not open socket", O_NOUINF, 2);
 
-	pnum = matoi(argv[1]);
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(pnum);
+	server.sin_port = htons(matoi(argv[1]));
 
 	if(bind(sfd, (struct sockaddr*)&server, sizeof(server)))
 		die("Could not bind port to socket", O_NOUINF, 3);
@@ -63,22 +64,24 @@ int main(int argc, char *argv[]) {
 	listen(sfd, MXCLI);
 	clilen = sizeof(client);
 
+	daemon(0, 0);
+	signal(SIGCHLD, SIG_IGN);
+
+	syslog(LOG_DAEMON | LOG_NOTICE, "Launched into the background");
+
 	for(;;) {
 		csfd = accept(sfd, (struct sockaddr*)&client, &clilen);
-		if(csfd < 0) die("Could not connect to client", O_NOUINF, 4);
+		if(csfd < 0) syslog(LOG_DAEMON | LOG_ERR, "Could not connect to client");
 
 		pid = fork();
 
 		if(pid < 0) {
-			die("Could not fork()", O_NOUINF, 4);
+			syslog(LOG_DAEMON | LOG_ERR, "Could not fork()");
 
 		} else if (!pid) {
 			close(sfd);
 			acceptclient(csfd, &client, &clilen);
 			exit(0);
-
-		} else {
-			close(csfd);
 		}
 
 		close(csfd);
