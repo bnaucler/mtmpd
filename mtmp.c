@@ -66,7 +66,7 @@ static char *geoloc(const char *ip, char *ret, size_t len) {
 	char req[URLLEN];
 	char *raw;
 
-	if(!ip[0]) strncpy(req, LAPIURL, URLLEN);
+	if(!ip[1]) strncpy(req, LAPIURL, URLLEN);
 	else snprintf(req, URLLEN, "%s/%s", LAPIURL, ip);
 	raw = creq(req);
 

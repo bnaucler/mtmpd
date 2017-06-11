@@ -15,6 +15,8 @@
 #include <curl/curl.h>
 
 #define BUFSZ  8192
+#define IPBUFSZ  20
+#define WBUFSZ 256
 #define LOCLEN  128
 #define URLLEN  256
 #define VALLEN  128

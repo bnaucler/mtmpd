@@ -10,10 +10,7 @@
 
 #include "mtmp.h"
 
-#define WBUFSZ 256
-#define IPBUFSZ 20
 #define MXCLI 5
-
 #define RESP "Message recieved"
 
 int matoi(char* str) {
@@ -26,14 +23,27 @@ int matoi(char* str) {
     return (int)lret;
 }
 
-int main(int argc, char *argv[]) {
+static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen) {
 
-	int sfd, csfd, pnum, rc;
-	socklen_t clilen;
-
-	// char buf[BUFSZ];
+	int rc;
 	char cip[IPBUFSZ];
 	char wstr[WBUFSZ];
+
+	rc = getnameinfo((struct sockaddr*)client, *clilen, cip,
+	sizeof(cip), 0 , 0, NI_NUMERICHOST);
+	if(rc) die("Failed to convert address to string", O_NOUINF, 7);
+
+	printf("Connection from: %s\n", cip);
+	mtmp("", cip, wstr, sizeof(wstr));
+
+	rc = write(sock, wstr, strlen(wstr));
+	if(rc < 0) die("Could not write to socket", O_NOUINF, 6);
+}
+
+int main(int argc, char *argv[]) {
+
+	int sfd, csfd, pnum, pid;
+	socklen_t clilen;
 
 	struct sockaddr_in server, client;
 	memset(&server, 0, sizeof(server));
@@ -52,26 +62,28 @@ int main(int argc, char *argv[]) {
 
 	listen(sfd, MXCLI);
 	clilen = sizeof(client);
-	csfd = accept(sfd, (struct sockaddr*)&client, &clilen);
 
-	if(csfd < 0) die("Could not connect to client", O_NOUINF, 4);
-	// memset(buf, 0, BUFSZ);
+	for(;;) {
+		csfd = accept(sfd, (struct sockaddr*)&client, &clilen);
+		if(csfd < 0) die("Could not connect to client", O_NOUINF, 4);
 
-	rc = getnameinfo((struct sockaddr*)&client, clilen, cip,
-	sizeof(cip), 0 , 0, NI_NUMERICHOST);
-	if(rc) die("Failed to convert address to string", O_NOUINF, 7);
+		pid = fork();
 
-	printf("Connection from: %s\n", cip);
-	mtmp("", cip, wstr, sizeof(wstr));
+		if(pid < 0) {
+			die("Could not fork()", O_NOUINF, 4);
 
-	// rc = read(csfd, buf, BUFSZ - 1);
-	// if(rc < 0) die("Could not read from socket", 5);
-	// printf("%s: %s\n", RESP, buf);
+		} else if (!pid) {
+			close(sfd);
+			acceptclient(csfd, &client, &clilen);
+			exit(0);
 
-	rc = write(csfd, wstr, strlen(wstr));
-	if(rc < 0) die("Could not write to socket", O_NOUINF, 6);
+		} else {
+			close(csfd);
+		}
 
-	close(csfd);
+		close(csfd);
+	}
+
 	close(sfd);
 
 	return 0;
