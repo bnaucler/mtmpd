@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <jansson.h>
 #include <curl/curl.h>
+#include <GeoIP.h>
+#include <GeoIPCity.h>
 
 #include "mtmp.h"
 
@@ -26,7 +28,7 @@ static size_t wresp(void *ptr, size_t size, size_t nmemb, void *stream) {
     return size * nmemb;
 }
 
-static char *creq(const char *url) {
+char *creq(const char *url) {
 
     CURL *curl = NULL;
     CURLcode status;
@@ -61,29 +63,17 @@ static char *creq(const char *url) {
     return data;
 }
 
-static char *geoloc(const char *ip, char *ret, size_t len) {
+static weather *geoloc(weather *wtr, const char *ip) {
 
-	char req[URLLEN];
-	char *raw;
+	GeoIP *gi = GeoIP_open(DB, GEOIP_INDEX_CACHE);
+	GeoIPRecord *grec = GeoIP_record_by_name(gi, ip);
 
-	if(!ip[1]) strncpy(req, LAPIURL, URLLEN);
-	else snprintf(req, URLLEN, "%s/%s", LAPIURL, ip);
-	raw = creq(req);
+	if(grec) {
+		strncpy(wtr->loc, grec->city, LOCLEN);
+		strncpy(wtr->cc, grec->country_code, CCLEN);
+	}
 
-	json_t *root;
-	json_error_t err;
-
-	root = (json_loads(raw, 0, &err));
-	free(raw);
-
-	if(!json_is_object(root)) return NULL;
-
-	const char *key;
-	json_t *val;
-	json_object_foreach(root, key, val) { if(!strncmp(key, "city", len)) break; }
-	strncpy(ret, json_string_value(val), len);
-
-	return ret;
+	return wtr;
 }
 
 static char *getwdir(int wdir, char *twdir) {
@@ -108,17 +98,6 @@ static char *getwdir(int wdir, char *twdir) {
 	return twdir;
 }
 
-static void capfirst(char *str) {
-
-	int scap = 0;
-	char *sptr = str;
-
-	do  {
-		if(!scap++) *sptr = toupper(*sptr);
-		else if (isspace(*sptr)) scap = 0;
-	} while(*++sptr);
-}
-
 char *mtmp(const char *loc, const char *ip, char *ret, const size_t rlen) {
 
 	char url[URLLEN];
@@ -129,13 +108,12 @@ char *mtmp(const char *loc, const char *ip, char *ret, const size_t rlen) {
 	json_error_t err;
 
 	if(loc[0]) strncpy(wtr.loc, loc, LOCLEN);
-	else if(!ip[0]) die("Could not determine location", O_NOUINF, 8);
-	else strncpy(wtr.loc, geoloc(ip, wtr.loc, LOCLEN), LOCLEN);
+	else if(!ip || !ip[0]) die("Could not determine location", O_NOUINF, 8);
+	else geoloc(&wtr, ip);
 
 	if(!wtr.loc[0]) die("Could not retrieve geolocation", O_NOUINF, 1);
-	capfirst(wtr.loc);
 
-	snprintf(url, URLLEN, "%s%s&appid=%s", WAPIURL, wtr.loc, WAPIKEY);
+	snprintf(url, URLLEN, "%s%s&appid=%s", APIURL, wtr.loc, APIKEY);
 	char *raw = creq(url);
 	if(!raw) die("Could not read data", O_NOUINF, 2);
 

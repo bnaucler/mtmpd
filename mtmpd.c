@@ -34,10 +34,11 @@ static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen
 	sizeof(cip), 0 , 0, NI_NUMERICHOST);
 	if(rc) syslog(LOG_DAEMON | LOG_ERR, "Failed IP address conversion");
 
-	syslog(LOG_DAEMON | LOG_INFO, "Connection from %s", cip);
 	mtmp("", cip, wstr, sizeof(wstr));
 
+	syslog(LOG_DAEMON | LOG_INFO, "Serving client at %s: %s", cip, wstr);
 	rc = write(sock, wstr, strlen(wstr));
+
 	if(rc < 0) syslog(LOG_DAEMON | LOG_ERR, "Could not write to socket");
 
 	shutdown(sock, 1);

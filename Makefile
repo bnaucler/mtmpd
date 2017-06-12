@@ -2,7 +2,7 @@ CC = cc
 TARGET = mtmpd
 SOURCE = *.c
 DESTDIR = /usr/bin
-CFLAGS ?= -Wall -g -ljansson -lcurl
+CFLAGS ?= -Wall -g -ljansson -lcurl -lGeoIP
 
 all:
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCE)
