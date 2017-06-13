@@ -29,12 +29,17 @@ static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen
 	int rc;
 	char cip[IPBUFSZ];
 	char wstr[WBUFSZ];
+	weather wtr;
 
 	rc = getnameinfo((struct sockaddr*)client, *clilen, cip,
 	sizeof(cip), 0 , 0, NI_NUMERICHOST);
 	if(rc) syslog(LOG_DAEMON | LOG_ERR, "Failed IP address conversion");
 
-	mtmp("", cip, wstr, sizeof(wstr));
+	mtmp("", cip, &wtr);
+	snprintf(wstr, WBUFSZ,
+			"%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n",
+			wtr.loc, wtr.cc, wtr.desc, wtr.temp, wtr.hum, wtr.pres,
+			wtr.ws, wtr.wdir);
 
 	syslog(LOG_DAEMON | LOG_INFO, "Serving client at %s: %s", cip, wstr);
 	rc = write(sock, wstr, strlen(wstr));
@@ -52,16 +57,16 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in server, client;
 	memset(&server, 0, sizeof(server));
 
-	if(argc < 2) die("No port number specified", O_NOUINF, 1);
+	if(argc < 2) die("No port number specified", 1);
 	sfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(sfd < 0) die("Could not open socket", O_NOUINF, 2);
+	if(sfd < 0) die("Could not open socket", 2);
 
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
 	server.sin_port = htons(matoi(argv[1]));
 
 	if(bind(sfd, (struct sockaddr*)&server, sizeof(server)))
-		die("Could not bind port to socket", O_NOUINF, 3);
+		die("Could not bind port to socket", 3);
 
 	listen(sfd, MXCLI);
 	clilen = sizeof(client);

@@ -20,6 +20,7 @@
 #define WBUFSZ 256
 #define IPBUFSZ  20
 #define LOCLEN  128
+#define DESCLEN 64
 #define URLLEN  256
 #define VALLEN  128
 #define WDIRLEN  4
@@ -31,16 +32,24 @@
 
 #define DB "/var/db/GeoLiteCity.dat"
 
-#define O_NOUINF 0
-#define O_UINF 1
+#define E_GEO "Could not retrieve geolocation"
+#define E_LOC "Could not determine location"
+#define E_DATA "Could not read data"
+#define E_JSON "JSON decoding failed"
+#define E_FMT "Unexpected JSON format"
+#define E_READ "Could not read data"
+#define E_CURL "Could not execute curl"
+#define E_HTTP "HTTP error code returned from server"
 
 typedef struct weather {
 	char loc[LOCLEN];
 	char cc[CCLEN];
+	char desc[DESCLEN];
+	char wdir[WDIRLEN];
 	double temp;
 	double ws;
-	int wdir;
 	int hum;
+	int pres;
 } weather;
 
 typedef struct wresult {
@@ -49,8 +58,8 @@ typedef struct wresult {
 } wresult;
 
 // Forward declarations - mtmp.c
-extern int die(char *err, int uinf, int ret);
+extern int die(char *err, int ret);
 extern char *creq(const char *url);
-extern char *mtmp(const char *loc, const char *ip, char *ret, const size_t rlen);
+extern weather *mtmp(const char *loc, const char *ip, weather *wtr);
 
 #endif

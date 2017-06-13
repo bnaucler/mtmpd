@@ -1,4 +1,4 @@
-# mtmpd 0.1
+# mtmpd 0.2
 A minimal http server for weather data built on [mtmp](https://github.com/bnaucler/mtmp).
 
 ## Written by

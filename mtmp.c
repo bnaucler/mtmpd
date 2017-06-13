@@ -9,7 +9,7 @@
 
 #include "mtmp.h"
 
-int die(char *err, int uinf, int ret) {
+int die(char *err, int ret) {
 
 	if(err[0]) fprintf(stderr, "Error: %s\n", err);
 	exit(ret);
@@ -17,50 +17,50 @@ int die(char *err, int uinf, int ret) {
 
 static size_t wresp(void *ptr, size_t size, size_t nmemb, void *stream) {
 
-    wresult *result = (wresult*)stream;
+	wresult *result = (wresult*)stream;
 
-    if(result->pos + size * nmemb >= BUFSZ - 1)
-		die("Buffer too small", O_NOUINF, 1);
+	if(result->pos + size * nmemb >= BUFSZ - 1)
+		die("Buffer too small", 1);
 
-    memcpy(result->data + result->pos, ptr, size * nmemb);
-    result->pos += size * nmemb;
+	memcpy(result->data + result->pos, ptr, size * nmemb);
+	result->pos += size * nmemb;
 
-    return size * nmemb;
+	return size * nmemb;
 }
 
 char *creq(const char *url) {
 
-    CURL *curl = NULL;
-    CURLcode status;
-    struct curl_slist *headers = NULL;
-    char *data = calloc(BUFSZ, sizeof(char));
-    long code;
+	CURL *curl = NULL;
+	CURLcode status;
+	struct curl_slist *headers = NULL;
+	char *data = calloc(BUFSZ, sizeof(char));
+	long code;
 
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
-    if(!curl) die("Could not start curl", O_NOUINF, 1);
+	curl_global_init(CURL_GLOBAL_ALL);
+	curl = curl_easy_init();
+	if(!curl) die(E_CURL, 1);
 
-    wresult wresult = {data, 0};
-    headers = curl_slist_append(headers, "User-Agent: mtmp");
+	wresult wresult = {data, 0};
+	headers = curl_slist_append(headers, "User-Agent: mtmp");
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, wresp);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &wresult);
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, wresp);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &wresult);
 
-    status = curl_easy_perform(curl);
-    if(status != 0) die("Could not read data", O_NOUINF, 2);
+	status = curl_easy_perform(curl);
+	if(status != 0) die(E_DATA, 2);
 
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-    if(code != 200) die("Returning error code from server", O_NOUINF, code);
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+	if(code != 200) die(E_HTTP, code);
 
-    curl_easy_cleanup(curl);
-    curl_slist_free_all(headers);
-    curl_global_cleanup();
+	curl_easy_cleanup(curl);
+	curl_slist_free_all(headers);
+	curl_global_cleanup();
 
-    data[wresult.pos] = 0;
+	data[wresult.pos] = 0;
 
-    return data;
+	return data;
 }
 
 static weather *geoloc(weather *wtr, const char *ip) {
@@ -76,81 +76,150 @@ static weather *geoloc(weather *wtr, const char *ip) {
 	return wtr;
 }
 
-static char *getwdir(int wdir, char *twdir) {
+static char *getwdir(int n, char *wdir) {
 
-	if(wdir > 11 && wdir < 34) strncpy(twdir, "NNE", WDIRLEN);
-	else if(wdir < 56) strncpy(twdir, "NE", WDIRLEN);
-	else if(wdir < 79) strncpy(twdir, "ENE", WDIRLEN);
-	else if(wdir < 101) strncpy(twdir, "E", WDIRLEN);
-	else if(wdir < 124) strncpy(twdir, "ESE", WDIRLEN);
-	else if(wdir < 146) strncpy(twdir, "SE", WDIRLEN);
-	else if(wdir < 169) strncpy(twdir, "SSE", WDIRLEN);
-	else if(wdir < 191) strncpy(twdir, "S", WDIRLEN);
-	else if(wdir < 214) strncpy(twdir, "SSW", WDIRLEN);
-	else if(wdir < 236) strncpy(twdir, "SW", WDIRLEN);
-	else if(wdir < 259) strncpy(twdir, "WSW", WDIRLEN);
-	else if(wdir < 281) strncpy(twdir, "W", WDIRLEN);
-	else if(wdir < 304) strncpy(twdir, "WNW", WDIRLEN);
-	else if(wdir < 326) strncpy(twdir, "NW", WDIRLEN);
-	else if(wdir < 349) strncpy(twdir, "NNW", WDIRLEN);
-	else strncpy(twdir, "N", WDIRLEN);
+	if(n > 11 && n < 34) strncpy(wdir, "NNE", WDIRLEN);
+	else if(n < 56) strncpy(wdir, "NE", WDIRLEN);
+	else if(n < 79) strncpy(wdir, "ENE", WDIRLEN);
+	else if(n < 101) strncpy(wdir, "E", WDIRLEN);
+	else if(n < 124) strncpy(wdir, "ESE", WDIRLEN);
+	else if(n < 146) strncpy(wdir, "SE", WDIRLEN);
+	else if(n < 169) strncpy(wdir, "SSE", WDIRLEN);
+	else if(n < 191) strncpy(wdir, "S", WDIRLEN);
+	else if(n < 214) strncpy(wdir, "SSW", WDIRLEN);
+	else if(n < 236) strncpy(wdir, "SW", WDIRLEN);
+	else if(n < 259) strncpy(wdir, "WSW", WDIRLEN);
+	else if(n < 281) strncpy(wdir, "W", WDIRLEN);
+	else if(n < 304) strncpy(wdir, "WNW", WDIRLEN);
+	else if(n < 326) strncpy(wdir, "NW", WDIRLEN);
+	else if(n < 349) strncpy(wdir, "NNW", WDIRLEN);
+	else strncpy(wdir, "N", WDIRLEN);
 
-	return twdir;
+	return wdir;
 }
 
-char *mtmp(const char *loc, const char *ip, char *ret, const size_t rlen) {
+static void chkobj(json_t *obj) {
+	if(!json_is_object(obj)) die(E_FMT, 4);
+}
 
-	char url[URLLEN];
-	char twdir[4];
-	weather wtr;
+static void chkarr(json_t *obj) {
+	if(!json_is_array(obj)) die(E_FMT, 4);
+}
 
-	json_t *root;
-	json_error_t err;
+static int mainobj(json_t *obj, weather *wtr) {
 
-	if(loc[0]) strncpy(wtr.loc, loc, LOCLEN);
-	else if(!ip || !ip[0]) die("Could not determine location", O_NOUINF, 8);
-	else geoloc(&wtr, ip);
+	chkobj(obj);
 
-	if(!wtr.loc[0]) die("Could not retrieve geolocation", O_NOUINF, 1);
+	const char *key;
+	json_t *tmp;
 
-	snprintf(url, URLLEN, "%s%s&appid=%s", APIURL, wtr.loc, APIKEY);
-	char *raw = creq(url);
-	if(!raw) die("Could not read data", O_NOUINF, 2);
+	json_object_foreach(obj, key, tmp) {
+		if(!strncmp(key, "temp", VALLEN))
+			wtr->temp = json_real_value(tmp) - 273.15;
+		if(!strncmp(key, "humidity", VALLEN))
+			wtr->hum = json_integer_value(tmp);
+		if(!strncmp(key, "pressure", VALLEN))
+			wtr->pres = json_integer_value(tmp);
+	}
 
-	root = (json_loads(raw, 0, &err));
-	free(raw);
-	if(!root) die("JSON decoding failed", O_NOUINF, 3);
+	if(wtr->temp) return 0;
+	else return 1;
+}
 
-	const char *k1, *k2;
-	json_t *v1, *v2;
+static int windobj(json_t *obj, weather *wtr) {
 
-	json_object_foreach(root, k1, v1) {
-		if(!strcmp(k1, "main")) {
-			if(!json_is_object(v1)) die("Unexpected JSON format", O_NOUINF, 4);
-			json_object_foreach(v1, k2, v2) {
-				if(!strncmp(k2, "temp", VALLEN)) wtr.temp = json_real_value(v2) - 273.15;
-				if(!strncmp(k2, "humidity", VALLEN)) wtr.hum = json_integer_value(v2);
-			}
+	chkobj(obj);
 
-		} else if(!strcmp(k1, "wind")) {
-			if(!json_is_object(v1)) die("Unexpected JSON format", O_NOUINF, 4);
-			json_object_foreach(v1, k2, v2) {
-				if(!strncmp(k2, "speed", VALLEN)) wtr.ws = json_real_value(v2);
-				if(!strncmp(k2, "deg", VALLEN)) wtr.wdir = json_integer_value(v2);
-			}
+	const char *key;
+	json_t *tmp;
 
-		} else if(!strcmp(k1, "sys")) {
-			if(!json_is_object(v1)) die("Unexpected JSON format", O_NOUINF, 4);
-			json_object_foreach(v1, k2, v2) {
-				if(!strncmp(k2, "country", VALLEN))
-					strcpy(wtr.cc, json_string_value(v2));
-			}
+	json_object_foreach(obj, key, tmp) {
+		if(!strncmp(key, "speed", VALLEN))
+			wtr->ws = json_real_value(tmp);
+		if(!strncmp(key, "deg", VALLEN))
+			getwdir(json_integer_value(tmp), wtr->wdir);
+	}
 
+	if(wtr->ws && wtr->wdir[0]) return 0;
+	else return 1;
+}
+
+static int weatherobj(json_t *obj, weather *wtr) {
+
+	chkarr(obj);
+	wtr->desc[0] = 0;
+
+	size_t index;
+	const char *key;
+	json_t *t1, *t2;
+
+	json_array_foreach(obj, index, t1) {
+		chkobj(t1);
+		json_object_foreach(t1, key, t2) {
+			if(!strncmp(key, "main", VALLEN))
+				strncpy(wtr->desc, json_string_value(t2), DESCLEN);
 		}
 	}
 
-	snprintf(ret, rlen, "%s, %s: %.1fC, humidity: %d%%, %.1f m/s %s\n",
-			wtr.loc, wtr.cc, wtr.temp, wtr.hum, wtr.ws, getwdir(wtr.wdir, twdir));
+	if(wtr->desc[0]) return 0;
+	else return 1;
+}
 
-	return ret;
+static int sysobj(json_t *obj, weather *wtr) {
+
+	chkobj(obj);
+
+	const char *key;
+	json_t *tmp;
+
+	json_object_foreach(obj, key, tmp) {
+		if(!strncmp(key, "country", VALLEN))
+			strcpy(wtr->cc, json_string_value(tmp));
+	}
+
+	if(wtr->cc[0]) return 0;
+	else return 1;
+}
+
+weather *mtmp(const char *loc, const char *ip, weather *wtr) {
+
+	char url[URLLEN];
+	const char *key;
+	json_t *root, *obj;
+
+	if(loc[0]) strncpy(wtr->loc, loc, LOCLEN);
+	else if(!ip || !ip[0]) die(E_LOC, 8);
+	else geoloc(wtr, ip);
+
+	if(!wtr->loc[0]) die(E_GEO, 1);
+
+	snprintf(url, URLLEN, "%s%s&appid=%s", APIURL, wtr->loc, APIKEY);
+	char *raw = creq(url);
+	if(!raw) die(E_DATA, 2);
+
+	root = json_loads(raw, 0, NULL);
+	free(raw);
+	if(!root) die(E_JSON, 3);
+
+	json_object_foreach(root, key, obj) {
+
+		if(!strcmp(key, "main")) {
+			if(mainobj(obj, wtr)) die(E_READ, 3);
+
+		} else if(!strcmp(key, "wind")) {
+			if(windobj(obj, wtr)) die(E_READ, 3);
+
+		} else if(!strcmp(key, "weather")) {
+			if(weatherobj(obj, wtr)) die(E_READ, 3);
+
+		} else if(!strcmp(key, "sys")) {
+			if(sysobj(obj, wtr)) die(E_READ, 3);
+
+		} else if(!strcmp(key, "name")) {
+			strncpy(wtr->loc, json_string_value(obj), LOCLEN);
+		}
+
+	}
+
+	return wtr;
 }
