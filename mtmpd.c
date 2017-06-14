@@ -14,8 +14,7 @@
 
 #define MXCLI 5
 
-#define ERR_RESP "Sorry! Could not retrieve weather data."
-#define WFMT "%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n"
+#define ERR_RESP "Sorry! Could not retrieve weather data.\n"
 
 int sfd;
 
@@ -59,8 +58,9 @@ static void acceptclient(const int sock, struct sockaddr_in *client,
 	if(!wtr.temp) return disco(sock, "mtmp failed");
 
 	snprintf(wstr, WBUFSZ,
-		WFMT, wtr.loc, wtr.cc, wtr.desc, wtr.temp,
-		wtr.hum, wtr.pres, wtr.ws, wtr.wdir);
+			"%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n",
+			wtr.loc, wtr.cc, wtr.desc, wtr.temp, wtr.hum, wtr.pres,
+			wtr.ws, wtr.wdir);
 
 	syslog(LOG_DAEMON | LOG_INFO, "Serving client at %s: %s", cip, wstr);
 	rc = write(sock, wstr, strlen(wstr));
