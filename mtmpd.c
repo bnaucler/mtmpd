@@ -14,7 +14,7 @@
 
 #define MXCLI 5
 
-#define ERR_RESP "Sorry! Could not retrieve weather data.\n"
+#define ERR_RESP "Sorry! Could not retrieve weather data."
 #define WFMT "%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n"
 
 int sfd;
