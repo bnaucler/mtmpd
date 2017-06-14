@@ -19,8 +19,7 @@ static size_t wresp(void *ptr, size_t size, size_t nmemb, void *stream) {
 
 	wresult *result = (wresult*)stream;
 
-	if(result->pos + size * nmemb >= BUFSZ - 1)
-		die("Buffer too small", 1);
+	if(result->pos + size * nmemb >= BUFSZ - 1) die("Buffer too small", 5);
 
 	memcpy(result->data + result->pos, ptr, size * nmemb);
 	result->pos += size * nmemb;
@@ -52,7 +51,7 @@ char *creq(const char *url) {
 	if(status != 0) die(E_DATA, 2);
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-	if(code != 200) die(E_HTTP, code);
+	if(code != 200) die(E_HTTP, (int) code);
 
 	curl_easy_cleanup(curl);
 	curl_slist_free_all(headers);
@@ -116,8 +115,10 @@ static int mainobj(json_t *obj, weather *wtr) {
 	json_object_foreach(obj, key, tmp) {
 		if(!strncmp(key, "temp", VALLEN))
 			wtr->temp = json_real_value(tmp) - 273.15;
+
 		if(!strncmp(key, "humidity", VALLEN))
 			wtr->hum = json_integer_value(tmp);
+
 		if(!strncmp(key, "pressure", VALLEN))
 			wtr->pres = json_integer_value(tmp);
 	}
@@ -186,11 +187,11 @@ char *mkwstr(weather *wtr, char *str, size_t len) {
 
 	char tstr[DESCLEN];
 
-	snprintf(str, len, "%s, %s: %s %.1f",
+	snprintf(str, len, "%s, %s: %s %.1fC",
 		wtr->loc, wtr->cc, wtr->desc, wtr->temp);
 
 	if(wtr->hum) {
-		snprintf(tstr, DESCLEN, ", humidity: %d%%", wtr->hum);
+		snprintf(tstr, DESCLEN, ", %d%% humidity", wtr->hum);
 		strncat(str, tstr, len);
 	}
 
