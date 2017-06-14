@@ -14,6 +14,11 @@
 
 #define MXCLI 5
 
+#define ERR_RESP "Sorry! Could not retrieve weather data.\n"
+#define WFMT "%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n"
+
+int sfd;
+
 int matoi(char* str) {
 
     long lret = strtol(str, NULL, 10);
@@ -24,7 +29,22 @@ int matoi(char* str) {
     return (int)lret;
 }
 
-static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen) {
+static void sighandler(int sig) {
+
+	syslog(LOG_DAEMON | LOG_NOTICE, "Received SIGTERM - shutting down.");
+	close(sfd);
+	exit(1);
+}
+
+static void disco(const int sock, const char *err) {
+
+	syslog(LOG_DAEMON | LOG_ERR, err);
+	write(sock, ERR_RESP, strlen(ERR_RESP));
+	shutdown(sock, 1);
+}
+
+static void acceptclient(const int sock, struct sockaddr_in *client,
+	socklen_t *clilen) {
 
 	int rc;
 	char cip[IPBUFSZ];
@@ -32,14 +52,15 @@ static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen
 	weather wtr;
 
 	rc = getnameinfo((struct sockaddr*)client, *clilen, cip,
-	sizeof(cip), 0 , 0, NI_NUMERICHOST);
-	if(rc) syslog(LOG_DAEMON | LOG_ERR, "Failed IP address conversion");
+		IPBUFSZ, 0 , 0, NI_NUMERICHOST);
+	if(rc) return disco(sock, "Failed IP address conversion");
 
 	mtmp("", cip, &wtr);
+	if(!wtr.temp) return disco(sock, "mtmp failed");
+
 	snprintf(wstr, WBUFSZ,
-			"%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n",
-			wtr.loc, wtr.cc, wtr.desc, wtr.temp, wtr.hum, wtr.pres,
-			wtr.ws, wtr.wdir);
+		WFMT, wtr.loc, wtr.cc, wtr.desc, wtr.temp,
+		wtr.hum, wtr.pres, wtr.ws, wtr.wdir);
 
 	syslog(LOG_DAEMON | LOG_INFO, "Serving client at %s: %s", cip, wstr);
 	rc = write(sock, wstr, strlen(wstr));
@@ -51,7 +72,7 @@ static void acceptclient(int sock, struct sockaddr_in *client, socklen_t *clilen
 
 int main(int argc, char *argv[]) {
 
-	int sfd, csfd, pid;
+	int csfd, pid;
 	socklen_t clilen;
 
 	struct sockaddr_in server, client;
@@ -72,7 +93,9 @@ int main(int argc, char *argv[]) {
 	clilen = sizeof(client);
 
 	daemon(0, 0);
+
 	signal(SIGCHLD, SIG_IGN);
+	signal(SIGTERM, sighandler);
 
 	syslog(LOG_DAEMON | LOG_NOTICE, "Launched into the background");
 
@@ -93,8 +116,6 @@ int main(int argc, char *argv[]) {
 
 		close(csfd);
 	}
-
-	close(sfd);
 
 	return 0;
 }
