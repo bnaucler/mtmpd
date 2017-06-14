@@ -17,7 +17,7 @@
 #include <GeoIPCity.h>
 
 #define BUFSZ  8192
-#define WBUFSZ 256
+#define WSTRLEN 256
 #define IPBUFSZ  20
 #define LOCLEN  128
 #define DESCLEN 64
@@ -60,6 +60,7 @@ typedef struct wresult {
 // Forward declarations - mtmp.c
 extern int die(char *err, int ret);
 extern char *creq(const char *url);
+extern char *mkwstr(weather *wtr, char *str, size_t len);
 extern weather *mtmp(const char *loc, const char *ip, weather *wtr);
 
 #endif

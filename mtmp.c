@@ -136,6 +136,7 @@ static int windobj(json_t *obj, weather *wtr) {
 	json_object_foreach(obj, key, tmp) {
 		if(!strncmp(key, "speed", VALLEN))
 			wtr->ws = json_real_value(tmp);
+
 		if(!strncmp(key, "deg", VALLEN))
 			getwdir(json_integer_value(tmp), wtr->wdir);
 	}
@@ -181,6 +182,43 @@ static int sysobj(json_t *obj, weather *wtr) {
 	else return 1;
 }
 
+char *mkwstr(weather *wtr, char *str, size_t len) {
+
+	char tstr[DESCLEN];
+
+	snprintf(str, len, "%s, %s: %s %.1f",
+		wtr->loc, wtr->cc, wtr->desc, wtr->temp);
+
+	if(wtr->hum) {
+		snprintf(tstr, DESCLEN, ", humidity: %d%%", wtr->hum);
+		strncat(str, tstr, len);
+	}
+
+	if(wtr->pres) {
+		snprintf(tstr, DESCLEN, ", %d hPa", wtr->pres);
+		strncat(str, tstr, len);
+	}
+
+	if(wtr->ws != 0 && wtr->wdir[0]) {
+		snprintf(tstr, DESCLEN, ", %.1f m/s %s", wtr->ws, wtr->wdir);
+		strncat(str, tstr, len);
+	}
+
+	return str;
+}
+
+static void setzero(weather *wtr) {
+
+	memset(wtr->cc, 0, CCLEN);
+	memset(wtr->desc, 0, DESCLEN);
+	memset(wtr->wdir, 0, WDIRLEN);
+
+	wtr->temp = 0;
+	wtr->ws = 0;
+	wtr->hum = 0;
+	wtr->pres = 0;
+}
+
 weather *mtmp(const char *loc, const char *ip, weather *wtr) {
 
 	char url[URLLEN];
@@ -192,6 +230,7 @@ weather *mtmp(const char *loc, const char *ip, weather *wtr) {
 	else geoloc(wtr, ip);
 
 	if(!wtr->loc[0]) die(E_GEO, 1);
+	else setzero(wtr);
 
 	snprintf(url, URLLEN, "%s%s&appid=%s", APIURL, wtr->loc, APIKEY);
 	char *raw = creq(url);

@@ -42,12 +42,22 @@ static void disco(const int sock, const char *err) {
 	shutdown(sock, 1);
 }
 
+static char *addnewline(char *str) {
+
+	int len = strlen(str);
+
+	str[len++] = '\n';
+	str[len] = 0;
+
+	return str;
+}
+
 static void acceptclient(const int sock, struct sockaddr_in *client,
 	socklen_t *clilen) {
 
 	int rc;
 	char cip[IPBUFSZ];
-	char wstr[WBUFSZ];
+	char wstr[WSTRLEN];
 	weather wtr;
 
 	rc = getnameinfo((struct sockaddr*)client, *clilen, cip,
@@ -56,13 +66,10 @@ static void acceptclient(const int sock, struct sockaddr_in *client,
 
 	mtmp("", cip, &wtr);
 	if(!wtr.temp) return disco(sock, "mtmp failed");
+	mkwstr(&wtr, wstr, sizeof(wstr));
+	addnewline(wstr);
 
-	snprintf(wstr, WBUFSZ,
-			"%s, %s: %s %.1fC, humidity: %d%%, %d hPa, %.1f m/s %s\n",
-			wtr.loc, wtr.cc, wtr.desc, wtr.temp, wtr.hum, wtr.pres,
-			wtr.ws, wtr.wdir);
-
-	syslog(LOG_DAEMON | LOG_INFO, "Serving client at %s: %s", cip, wstr);
+	syslog(LOG_DAEMON | LOG_INFO, "Client %s: %s", cip, wstr);
 	rc = write(sock, wstr, strlen(wstr));
 
 	if(rc < 0) syslog(LOG_DAEMON | LOG_ERR, "Could not write to socket");
