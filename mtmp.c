@@ -15,16 +15,17 @@ int die(char *err, int ret) {
 	exit(ret);
 }
 
-static size_t wresp(void *ptr, size_t size, size_t nmemb, void *stream) {
+static size_t wresp(void *ptr, const size_t sz, const size_t n, void *stream) {
 
+	const size_t szn = sz * n;
 	wresult *result = (wresult*)stream;
 
-	if(result->pos + size * nmemb >= BUFSZ - 1) die("Buffer too small", 5);
+	if(result->pos + szn >= BUFSZ - 1) die("Buffer too small", 5);
 
-	memcpy(result->data + result->pos, ptr, size * nmemb);
-	result->pos += size * nmemb;
+	memcpy(result->data + result->pos, ptr, szn);
+	result->pos += szn;
 
-	return size * nmemb;
+	return szn;
 }
 
 char *creq(const char *url) {
@@ -51,7 +52,7 @@ char *creq(const char *url) {
 	if(status != 0) die(E_DATA, 2);
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-	if(code != 200) die(E_HTTP, (int) code);
+	if(code != 200) die(E_HTTP, 5);
 
 	curl_easy_cleanup(curl);
 	curl_slist_free_all(headers);
@@ -75,7 +76,7 @@ static weather *geoloc(weather *wtr, const char *ip) {
 	return wtr;
 }
 
-static char *getwdir(int n, char *wdir) {
+static char *getwdir(const int n, char *wdir) {
 
 	if(n > 11 && n < 34) strncpy(wdir, "NNE", WDIRLEN);
 	else if(n < 56) strncpy(wdir, "NE", WDIRLEN);
@@ -183,7 +184,7 @@ static int sysobj(json_t *obj, weather *wtr) {
 	else return 1;
 }
 
-char *mkwstr(weather *wtr, char *str, size_t len) {
+char *mkwstr(const weather *wtr, char *str, const size_t len) {
 
 	char tstr[DESCLEN];
 
@@ -230,6 +231,7 @@ weather *mtmp(const char *loc, const char *ip, weather *wtr) {
 	else if(!ip || !ip[0]) die(E_LOC, 8);
 	else geoloc(wtr, ip);
 
+	// TODO: Don't setzero cc unless necessary
 	if(!wtr->loc[0]) die(E_GEO, 1);
 	else setzero(wtr);
 

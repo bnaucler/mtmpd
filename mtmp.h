@@ -60,7 +60,7 @@ typedef struct wresult {
 // Forward declarations - mtmp.c
 extern int die(char *err, int ret);
 extern char *creq(const char *url);
-extern char *mkwstr(weather *wtr, char *str, size_t len);
+extern char *mkwstr(const weather *wtr, char *str, const size_t len);
 extern weather *mtmp(const char *loc, const char *ip, weather *wtr);
 
 #endif
