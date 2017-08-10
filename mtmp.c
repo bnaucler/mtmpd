@@ -258,7 +258,7 @@ weather *mtmp(const char *loc, const char *ip, weather *wtr) {
 			strncpy(wtr->loc, json_string_value(obj), LOCLEN);
 
 		} else if(!strcmp(key, "wind")) {
-			windobj(obj, wtr)
+			windobj(obj, wtr);
 		}
 
 	}
