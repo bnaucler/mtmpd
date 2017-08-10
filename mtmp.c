@@ -248,9 +248,6 @@ weather *mtmp(const char *loc, const char *ip, weather *wtr) {
 		if(!strcmp(key, "main")) {
 			if(mainobj(obj, wtr)) die(E_READ, 3);
 
-		} else if(!strcmp(key, "wind")) {
-			if(windobj(obj, wtr)) die(E_READ, 3);
-
 		} else if(!strcmp(key, "weather")) {
 			if(weatherobj(obj, wtr)) die(E_READ, 3);
 
@@ -259,6 +256,9 @@ weather *mtmp(const char *loc, const char *ip, weather *wtr) {
 
 		} else if(!strcmp(key, "name")) {
 			strncpy(wtr->loc, json_string_value(obj), LOCLEN);
+
+		} else if(!strcmp(key, "wind")) {
+			windobj(obj, wtr)
 		}
 
 	}
